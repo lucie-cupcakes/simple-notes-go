@@ -3,6 +3,8 @@ package main
 import (
 	"bytes"
 	"encoding/gob"
+	"fmt"
+	"net/http"
 	"time"
 
 	"github.com/google/uuid"
@@ -40,7 +42,7 @@ func (n *Note) ToGOB() ([]byte, error) {
 	enc := gob.NewEncoder(&buff)
 	err := enc.Encode(n)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error serializing Note to GOB:\n\t%s", err.Error())
 	}
 	return buff.Bytes(), nil
 }
@@ -50,12 +52,47 @@ func (n *Note) FromGOB(data []byte) error {
 	var buff bytes.Buffer
 	_, err := buff.Write(data)
 	if err != nil {
-		return err
+		return fmt.Errorf("error restoring Note from GOB data:\n\t%s", err.Error())
 	}
 	dec := gob.NewDecoder(&buff)
 	err = dec.Decode(n)
 	if err != nil {
-		return err
+		return fmt.Errorf("error restoring Note from GOB data:\n\t%s", err.Error())
+	}
+	return nil
+}
+
+// Save allows the user to save the Note into a Pepino Database
+func (n *Note) Save(db *PepinoDB) error {
+	gobBytes, err := n.ToGOB()
+	if err != nil {
+		return fmt.Errorf("error saving Note:\n\t%s", err.Error())
+	}
+	httpStatus, errDesc, err := db.SaveEntry(n.ID.String(), gobBytes)
+	if httpStatus != http.StatusOK && errDesc != "" {
+		return fmt.Errorf("error saving Note:\n\tHTTP Error %T: %s", httpStatus, errDesc)
+	}
+	if err != nil {
+		return fmt.Errorf("error saving Note:\n\t%s", err.Error())
+	}
+	if httpStatus != http.StatusOK && errDesc == "" {
+		return fmt.Errorf("error saving Note:\n\tHTTP Error %T", httpStatus)
+	}
+	return nil
+}
+
+// Loads allows the user to load the Note from a Pepino Database
+func (n *Note) Load(id string, db *PepinoDB) error {
+	httpStatus, httpRes, err := db.GetEntry(id)
+	if httpStatus != http.StatusOK && (httpRes != nil && len(httpRes) > 0) {
+		errDesc := string(httpRes)
+		return fmt.Errorf("cannot load Note:\n\tHTTP Error %T: %s", httpStatus, errDesc)
+	}
+	if err != nil {
+		return fmt.Errorf("cannot load Note:\n\t%s", err.Error())
+	}
+	if httpStatus != http.StatusOK && httpRes == nil {
+		return fmt.Errorf("cannot load Note:\n\tHTTP Error %T", httpStatus)
 	}
 	return nil
 }
