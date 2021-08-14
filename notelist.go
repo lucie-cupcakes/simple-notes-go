@@ -6,30 +6,42 @@ import (
 	"fmt"
 )
 
-func (p *Program) loadNoteList() error {
-	noteListGOB, err := p.dbHandle.GetEntry("List")
+// NoteList is a dictionary for keeping track of the total Note instances
+type NoteList struct {
+	Value map[string]string
+}
+
+// Initialize sets up the initial values for the NoteList instance
+func (l *NoteList) Initialize() {
+	l.Value = make(map[string]string)
+}
+
+// Load recovers the NoteList instance from the PepinoDB
+func (l *NoteList) Load(dbHandle *PepinoDB) error {
+	noteListGOB, err := dbHandle.GetEntry("List")
 	if err != nil {
 		return fmt.Errorf("error loading NoteList: %s", err.Error())
 	}
 	reader := bytes.NewReader(noteListGOB)
 	dec := gob.NewDecoder(reader)
-	err = dec.Decode(&p.noteList)
+	err = dec.Decode(l)
 	if err != nil {
 		return fmt.Errorf("error loading NoteList: %s", err.Error())
 	}
 	return nil
 }
 
-func (p *Program) saveNoteList() error {
+// Save serializes and saves the NoteList instance to the PepinoDB
+func (l *NoteList) Save(dbHandle *PepinoDB) error {
 	buff := bytes.Buffer{}
 	enc := gob.NewEncoder(&buff)
-	err := enc.Encode(p.noteList)
+	err := enc.Encode(l)
 	if err != nil {
 		return fmt.Errorf("error saving NoteList:\n\t%s", err.Error())
 	}
-	err = p.dbHandle.SaveEntry("List", buff.Bytes())
+	err = dbHandle.SaveEntry("List", buff.Bytes())
 	if err != nil {
-		return fmt.Errorf("error loading NoteList: %s", err.Error())
+		return fmt.Errorf("error saving NoteList: %s", err.Error())
 	}
 	return nil
 }
