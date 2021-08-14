@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/gob"
 	"fmt"
-	"net/http"
 	"time"
 
 	"github.com/google/uuid"
@@ -68,31 +67,22 @@ func (n *Note) Save(db *PepinoDB) error {
 	if err != nil {
 		return fmt.Errorf("error saving Note:\n\t%s", err.Error())
 	}
-	httpStatus, errDesc, err := db.SaveEntry(n.ID.String(), gobBytes)
-	if httpStatus != http.StatusOK && errDesc != "" {
-		return fmt.Errorf("error saving Note:\n\tHTTP Error %T: %s", httpStatus, errDesc)
-	}
+	err = db.SaveEntry(n.ID.String(), gobBytes)
 	if err != nil {
 		return fmt.Errorf("error saving Note:\n\t%s", err.Error())
-	}
-	if httpStatus != http.StatusOK && errDesc == "" {
-		return fmt.Errorf("error saving Note:\n\tHTTP Error %T", httpStatus)
 	}
 	return nil
 }
 
-// Loads allows the user to load the Note from a Pepino Database
+// Load allows the user to load the Note from a Pepino Database
 func (n *Note) Load(id string, db *PepinoDB) error {
-	httpStatus, httpRes, err := db.GetEntry(id)
-	if httpStatus != http.StatusOK && (httpRes != nil && len(httpRes) > 0) {
-		errDesc := string(httpRes)
-		return fmt.Errorf("cannot load Note:\n\tHTTP Error %T: %s", httpStatus, errDesc)
-	}
+	data, err := db.GetEntry(id)
 	if err != nil {
 		return fmt.Errorf("cannot load Note:\n\t%s", err.Error())
 	}
-	if httpStatus != http.StatusOK && httpRes == nil {
-		return fmt.Errorf("cannot load Note:\n\tHTTP Error %T", httpStatus)
+	err = n.FromGOB(data)
+	if err != nil {
+		return fmt.Errorf("cannot load Note:\n\t%s", err.Error())
 	}
 	return nil
 }

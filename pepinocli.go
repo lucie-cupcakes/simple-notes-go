@@ -2,15 +2,25 @@ package main
 
 import (
 	"bytes"
+	"fmt"
 	"io/ioutil"
 	"net/http"
+	"strconv"
+	"strings"
 )
 
 // PepinoDB is a database handle
 type PepinoDB struct {
 	url      string
-	password string
 	dbName   string
+	password string
+}
+
+// Initialize sets-ups the initial values for a PepinoDB instance
+func (p *PepinoDB) Initialize(url string, dbName string, password string) {
+	p.url = url
+	p.dbName = dbName
+	p.password = password
 }
 
 func (p *PepinoDB) buildURLForEntry(entryName string) string {
@@ -19,65 +29,69 @@ func (p *PepinoDB) buildURLForEntry(entryName string) string {
 }
 
 // SaveEntry lets the user save bytes on the Pepino Database
-// Returns: HTTP StatusCode, Response as String, Error.
-// When Error is not nil, it should be prioritized over anything else.
-func (p *PepinoDB) SaveEntry(entryName string, entryValue []byte) (int, string, error) {
+func (p *PepinoDB) SaveEntry(entryName string, entryValue []byte) error {
 	valueReader := bytes.NewReader(entryValue)
-	res, err := http.Post(p.buildURLForEntry(entryName), "application/octet-stream", valueReader)
+	url := p.buildURLForEntry(entryName)
+	res, err := http.Post(url, "application/octet-stream", valueReader)
 	if err != nil {
-		return -99, "", err
+		return fmt.Errorf("error saving entry:\n\t%s", err.Error())
 	}
-	if res.StatusCode == 200 {
-		return res.StatusCode, "", nil
+	if res.StatusCode == http.StatusOK {
+		return nil
 	}
 	defer res.Body.Close()
 	body, err := ioutil.ReadAll(res.Body)
-	if err != nil {
-		return res.StatusCode, "", err
+	errDesc := strings.Builder{}
+	errDesc.WriteString("HTTP Error " + strconv.Itoa(res.StatusCode))
+	if err == nil && body != nil && len(body) > 1 {
+		errDesc.WriteString(" : " + string(body))
 	}
-	return res.StatusCode, string(body), nil
+	return fmt.Errorf("error saving entry:\n\t%s", errDesc.String())
 }
 
 // GetEntry the user remove an entry from the Pepino Database
-// Returns: HTTP StatusCode, Response as []byte, Error.
-// When Error is not nil, it should be prioritized over anything else.
-// If Error is nil and StatusCode is different from 200, Description from
-// server can be get by treating the response as an UTF-8 String
-func (p *PepinoDB) GetEntry(entryName string) (int, []byte, error) {
+func (p *PepinoDB) GetEntry(entryName string) ([]byte, error) {
 	res, err := http.Get(p.buildURLForEntry(entryName))
 	if err != nil {
-		return -99, nil, err
+		return nil, fmt.Errorf("error getting entry:\n\t%s", err.Error())
 	}
 	defer res.Body.Close()
 	body, err := ioutil.ReadAll(res.Body)
 	if err != nil {
-		return res.StatusCode, nil, err
+		return nil, fmt.Errorf("error getting entry:\n\t%s", err.Error())
 	}
-	return res.StatusCode, body, nil
+	if res.StatusCode == http.StatusOK {
+		return body, nil
+	}
+	errDesc := strings.Builder{}
+	errDesc.WriteString("HTTP Error " + strconv.Itoa(res.StatusCode))
+	if body != nil && len(body) > 1 {
+		errDesc.WriteString(" : " + string(body))
+	}
+	return nil, fmt.Errorf("error getting entry:\n\t%s", errDesc.String())
 }
 
 // DeleteEntry lets the user get an entry from the Pepino Database
-// Returns: HTTP StatusCode, Response as String, Error.
-// When Error is not nil, it should be prioritized over anything else.
-// If Error is nil and StatusCode is different from 200, Description from
-// server can be get by treating the response as an UTF-8 String
-func (p *PepinoDB) DeleteEntry(entryName string) (int, string, error) {
-	req, err := http.NewRequest(http.MethodDelete, p.buildURLForEntry(entryName), nil)
+func (p *PepinoDB) DeleteEntry(entryName string) error {
+	url := p.buildURLForEntry(entryName)
+	req, err := http.NewRequest(http.MethodDelete, url, nil)
 	if err != nil {
-		return -99, "", err
+		return fmt.Errorf("error deleting entry:\n\t%s", err.Error())
 	}
 	client := &http.Client{}
 	res, err := client.Do(req)
 	if err != nil {
-		return -99, "", err
+		return fmt.Errorf("error deleting entry:\n\t%s", err.Error())
+	}
+	if res.StatusCode == http.StatusOK {
+		return nil
 	}
 	defer res.Body.Close()
 	body, err := ioutil.ReadAll(res.Body)
-	if err != nil {
-		return res.StatusCode, "", err
+	errDesc := strings.Builder{}
+	errDesc.WriteString("HTTP Error " + strconv.Itoa(res.StatusCode))
+	if err == nil && body != nil && len(body) > 1 {
+		errDesc.WriteString(" : " + string(body))
 	}
-	if len(body) > 0 {
-		return res.StatusCode, string(body), nil
-	}
-	return res.StatusCode, string(body), nil
+	return fmt.Errorf("error deleting entry:\n\t%s", errDesc.String())
 }
