@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/gob"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -85,4 +86,14 @@ func (n *Note) Load(id string, db *PepinoDB) error {
 		return fmt.Errorf("cannot load Note:\n\t%s", err.Error())
 	}
 	return nil
+}
+
+// ToString converts the Note to a String, intended to be displayed to the user
+func (n *Note) ToString() string {
+	res := strings.Builder{}
+	res.WriteString("Title: " + n.Title + "\n")
+	res.WriteString("Creation Time: " + n.CreationTime.String())
+	res.WriteString("Last Modified: " + n.LastModified.String())
+	res.WriteString("\n" + n.Contents)
+	return res.String()
 }

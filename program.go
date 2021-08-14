@@ -52,7 +52,7 @@ func (p *Program) newCommand() {
 		fmt.Println(err.Error())
 		return
 	}
-	p.noteList.Value[note.ID.String()] = note.Title
+	p.noteList.Put(note.ID.String(), note.Title)
 	err = p.noteList.Save(p.dbHandle)
 	if err != nil {
 		fmt.Println(err.Error())
@@ -73,10 +73,8 @@ func (p *Program) printCommand() {
 }
 
 func (p *Program) listCommand() {
-	if len(p.noteList.Value) > 0 {
-		for noteID, noteTitle := range p.noteList.Value {
-			fmt.Println(noteID + "\t" + noteTitle)
-		}
+	if p.noteList.Count() > 0 {
+		fmt.Println(p.noteList.ToString("{key}\t{value}"))
 	} else {
 		fmt.Println("There are not saved notes.")
 	}
