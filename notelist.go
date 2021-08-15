@@ -62,7 +62,7 @@ func (l *NoteList) Load(dbHandle *PepinoDB) error {
 	}
 	reader := bytes.NewReader(noteListGOB)
 	dec := gob.NewDecoder(reader)
-	err = dec.Decode(l)
+	err = dec.Decode(&l.Value)
 	if err != nil {
 		return fmt.Errorf("error loading NoteList: %s", err.Error())
 	}
@@ -73,7 +73,7 @@ func (l *NoteList) Load(dbHandle *PepinoDB) error {
 func (l *NoteList) Save(dbHandle *PepinoDB) error {
 	buff := bytes.Buffer{}
 	enc := gob.NewEncoder(&buff)
-	err := enc.Encode(l)
+	err := enc.Encode(l.Value)
 	if err != nil {
 		return fmt.Errorf("error saving NoteList:\n\t%s", err.Error())
 	}

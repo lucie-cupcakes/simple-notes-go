@@ -44,6 +44,7 @@ func (p *Program) readUntilFinish() string {
 func (p *Program) newCommand() {
 	fmt.Print("title: ")
 	title, _ := p.cmdReader.ReadString('\n')
+	title = strings.TrimSpace(title)
 	contents := p.readUntilFinish()
 	note := Note{}
 	note.Create(title, contents)
@@ -69,7 +70,29 @@ func (p *Program) modifyCommand() {
 }
 
 func (p *Program) printCommand() {
+	if !strings.Contains(p.cmdInput, " ") {
+		fmt.Println("usage: print <NoteID>")
+		return
+	}
+	cmdArr := strings.Split(strings.TrimSpace(p.cmdInput), " ")
+	if len(cmdArr) != 2 {
+		fmt.Println("usage: print <NoteID>")
+		return
+	}
+	noteID := cmdArr[1]
 
+	if !p.noteList.Has(noteID) {
+		fmt.Println("The note does not exists.")
+		return
+	}
+
+	note := Note{}
+	err := note.Load(noteID, p.dbHandle)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	fmt.Println(note.ToString())
 }
 
 func (p *Program) listCommand() {
