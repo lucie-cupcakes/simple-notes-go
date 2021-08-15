@@ -62,11 +62,82 @@ func (p *Program) newCommand() {
 }
 
 func (p *Program) deleteCommand() {
+	if !strings.Contains(p.cmdInput, " ") {
+		fmt.Println("usage: del <NoteID>")
+		return
+	}
+	cmdArr := strings.Split(strings.TrimSpace(p.cmdInput), " ")
+	if len(cmdArr) != 2 {
+		fmt.Println("usage: del <NoteID>")
+		return
+	}
+	noteID := cmdArr[1]
 
+	if !p.noteList.Has(noteID) {
+		fmt.Println("The note does not exists.")
+		return
+	}
+
+	err := p.dbHandle.DeleteEntry(noteID)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	err = p.noteList.Delete(noteID)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	err = p.noteList.Save(p.dbHandle)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
 }
 
 func (p *Program) modifyCommand() {
+	if !strings.Contains(p.cmdInput, " ") {
+		fmt.Println("usage: mod <NoteID>")
+		return
+	}
+	cmdArr := strings.Split(strings.TrimSpace(p.cmdInput), " ")
+	if len(cmdArr) != 2 {
+		fmt.Println("usage: mod <NoteID>")
+		return
+	}
+	noteID := cmdArr[1]
 
+	if !p.noteList.Has(noteID) {
+		fmt.Println("The note does not exists.")
+		return
+	}
+
+	note := Note{}
+	err := note.Load(noteID, p.dbHandle)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	fmt.Println(note.ToString())
+
+	fmt.Print("title: ")
+	title, _ := p.cmdReader.ReadString('\n')
+	title = strings.TrimSpace(title)
+	contents := p.readUntilFinish()
+	note.Modify(title, contents)
+	err = note.Save(p.dbHandle)
+	if err != nil {
+		fmt.Println(err.Error())
+		return
+	}
+	p.noteList.Put(noteID, note.Title)
+	err = p.noteList.Save(p.dbHandle)
+	if err != nil {
+		fmt.Println(err.Error())
+		return
+	}
 }
 
 func (p *Program) printCommand() {

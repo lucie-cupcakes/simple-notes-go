@@ -43,6 +43,16 @@ func (l *NoteList) Count() int {
 	return len(l.Value)
 }
 
+// Delete is used to delete an entry
+func (l *NoteList) Delete(key string) error {
+	_, found := l.Value[key]
+	if !found {
+		return errors.New("cannot delete KeyValuePair: not found")
+	}
+	delete(l.Value, key)
+	return nil
+}
+
 // ToString converts the NoteList to display it to the user
 func (l *NoteList) ToString(format string) string {
 	res := strings.Builder{}

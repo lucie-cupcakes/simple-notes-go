@@ -92,8 +92,8 @@ func (n *Note) Load(id string, db *PepinoDB) error {
 func (n *Note) ToString() string {
 	res := strings.Builder{}
 	res.WriteString("Title: " + n.Title + "\n")
-	res.WriteString("Creation Time: " + n.CreationTime.String())
-	res.WriteString("Last Modified: " + n.LastModified.String())
-	res.WriteString("\n" + n.Contents)
+	res.WriteString("Creation Time: " + n.CreationTime.String() + "\n")
+	res.WriteString("Last Modified: " + n.LastModified.String() + "\n")
+	res.WriteString(n.Contents)
 	return res.String()
 }
